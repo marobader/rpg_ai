@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 local Config = ReplicatedStorage.RPG.Config
 local MobsCfg = require(Config.Mobs)
 local DataManager = require(script.Parent.DataManager)
+local QuestSystem = require(script.Parent.QuestSystem)
 local Items = require(Config.Items)
 
 local MobSystem = {}
@@ -199,6 +200,7 @@ local function onDied(model: Model, def, mobType: string, spawnPos: Vector3)
 		DataManager.addXp(killer, "Schwert", def.xp)
 		DataManager.addGold(killer, math.random(def.gold[1], def.gold[2]))
 		rollLoot(killer, def)
+		QuestSystem.report(killer, "kill", mobType)
 		DataManager.notify(killer, string.format("%s besiegt!  (+%d Schwert XP)", def.display, def.xp), "good")
 	end
 	for _, part in ipairs(model:GetDescendants()) do

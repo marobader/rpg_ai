@@ -4,6 +4,9 @@ local Systems = script.Parent.Systems
 local DataManager = require(Systems.DataManager)
 DataManager.init()
 
+local QuestSystem = require(Systems.QuestSystem)
+QuestSystem.init()
+
 local PortalSystem = require(Systems.PortalSystem)
 PortalSystem.init()
 
@@ -15,7 +18,5 @@ MobSystem.init()
 
 local CombatSystem = require(Systems.CombatSystem)
 CombatSystem.init()
-
--- Weitere Systeme werden hier registriert (ResourceSystem, MobSystem, QuestSystem, ...)
 
 print("[RPG] Server-Systeme gestartet.")

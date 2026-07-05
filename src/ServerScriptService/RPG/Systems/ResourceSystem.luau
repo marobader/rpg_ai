@@ -10,6 +10,7 @@ local XP = require(Config.XP)
 local Items = require(Config.Items)
 local Skills = require(Config.Skills)
 local DataManager = require(script.Parent.DataManager)
+local QuestSystem = require(script.Parent.QuestSystem)
 
 local ResourceSystem = {}
 
@@ -94,6 +95,8 @@ local function harvest(player: Player, model: Model, nodeType: string)
 	DataManager.addXp(player, def.skill, def.xp)
 	DataManager.notify(player, string.format("+%d %s  (+%d %s XP)", def.count, Items.name(def.item), def.xp,
 		Skills.ByKey[def.skill] and Skills.ByKey[def.skill].name or def.skill), "good")
+
+	QuestSystem.report(player, "harvest", nodeType)
 
 	setDepleted(model, def, true)
 	task.delay(def.respawn, function()
