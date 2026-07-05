@@ -1,0 +1,111 @@
+--!strict
+-- Schwert-Nahkampf (server-autoritativ) + Ausweichen mit i-Frames.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
+
+local Config = ReplicatedStorage.RPG.Config
+local XP = require(Config.XP)
+local DataManager = require(script.Parent.DataManager)
+local MobSystem = require(script.Parent.MobSystem)
+
+local CombatSystem = {}
+
+local ATTACK_CD = 0.6
+local MELEE_RANGE = 9
+local ARC_DOT = 0.35        -- ~70 Grad Kegel vor dem Spieler
+local DODGE_CD = 1.3
+local IFRAME = 0.45
+local DASH_SPEED = 70
+
+local lastAttack: { [Player]: number } = {}
+local lastDodge: { [Player]: number } = {}
+
+local function getRemote(name: string): RemoteEvent
+	local folder = ReplicatedStorage.RPG.Remotes
+	local r = folder:FindFirstChild(name)
+	if not r then r = Instance.new("RemoteEvent"); r.Name = name; r.Parent = folder end
+	return r :: RemoteEvent
+end
+
+local function swordDamage(player: Player): number
+	local profile = DataManager.get(player)
+	local level = profile and XP.levelForXp(profile.skills.Schwert or 0) or 1
+	return 12 + math.floor(level * 0.8)
+end
+
+local function onAttack(player: Player)
+	local now = os.clock()
+	if lastAttack[player] and now - lastAttack[player] < ATTACK_CD then return end
+	lastAttack[player] = now
+
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not root or not hum or hum.Health <= 0 then return end
+
+	local origin = root.Position
+	local look = root.CFrame.LookVector
+	look = Vector3.new(look.X, 0, look.Z)
+	if look.Magnitude < 0.01 then return end
+	look = look.Unit
+
+	local dmg = swordDamage(player)
+	local hits = 0
+	for _, mob in ipairs(CollectionService:GetTagged("Mob")) do
+		if mob:IsA("Model") and not mob:GetAttribute("Dead") and mob.PrimaryPart then
+			local to = mob.PrimaryPart.Position - origin
+			local flat = Vector3.new(to.X, 0, to.Z)
+			local dist = flat.Magnitude
+			if dist <= MELEE_RANGE and dist > 0.01 and flat.Unit:Dot(look) >= ARC_DOT then
+				MobSystem.damageMob(mob, dmg, player)
+				hits += 1
+			end
+		end
+	end
+	getRemote("CombatFX"):FireClient(player, { kind = "swing", hits = hits })
+end
+
+local function onDodge(player: Player)
+	local now = os.clock()
+	if lastDodge[player] and now - lastDodge[player] < DODGE_CD then return end
+	lastDodge[player] = now
+
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not root or not hum or hum.Health <= 0 then return end
+
+	player:SetAttribute("Invulnerable", true)
+	local look = root.CFrame.LookVector
+	local dir = Vector3.new(look.X, 0, look.Z)
+	if dir.Magnitude > 0.01 then
+		root.AssemblyLinearVelocity = dir.Unit * DASH_SPEED + Vector3.new(0, 8, 0)
+	end
+	task.delay(IFRAME, function()
+		if player then player:SetAttribute("Invulnerable", false) end
+	end)
+	getRemote("CombatFX"):FireClient(player, { kind = "dodge" })
+end
+
+function CombatSystem.init()
+	getRemote("CombatFX")
+	getRemote("AttackRequest").OnServerEvent:Connect(onAttack)
+	getRemote("DodgeRequest").OnServerEvent:Connect(onDodge)
+
+	local function reset(player: Player)
+		player:SetAttribute("Invulnerable", false)
+		player.CharacterAdded:Connect(function()
+			player:SetAttribute("Invulnerable", false)
+		end)
+	end
+	for _, p in ipairs(Players:GetPlayers()) do reset(p) end
+	Players.PlayerAdded:Connect(reset)
+	Players.PlayerRemoving:Connect(function(p)
+		lastAttack[p] = nil; lastDodge[p] = nil
+	end)
+	print("[CombatSystem] initialisiert.")
+end
+
+return CombatSystem

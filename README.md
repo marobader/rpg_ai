@@ -15,12 +15,16 @@ Das vollständige Game-Design-Dokument liegt unter [docs/GameDesign.md](docs/Gam
 ```
 RPG.rbxlx                 ← Der Roblox-Platz (enthält ALLES: Code + Welt)
 docs/GameDesign.md        ← Game-Design-Dokument
-src/                      ← Lesbare Kopie des Codes (optional, zum Durchschauen/Diffen)
+src/                      ← Lesbare, versionierte Kopie aller Scripts (Rojo-Struktur)
 ```
 
-> **Wichtig:** Die Datei `RPG.rbxlx` ist die maßgebliche Projektdatei. Zum Öffnen
-> einfach in Roblox Studio laden. Der Ordner `src/` ist nur eine gespiegelte,
-> lesbare Kopie der Scripts.
+> **Wichtig:** Die Datei `RPG.rbxlx` ist die maßgebliche Projektdatei — sie enthält
+> den gesamten Code UND die Welt. Zum Öffnen einfach in Roblox Studio laden.
+>
+> Der Ordner `src/` ist eine automatisch gepflegte, lesbare Spiegelung des Codes
+> (zum Durchschauen & für saubere git-Diffs). Die Dateiendungen folgen der
+> Rojo-Konvention: `*.server.luau` (Server-Script), `*.client.luau` (LocalScript),
+> `*.luau` (ModuleScript).
 
 ## 🎮 Aktueller Stand (Prototyp)
 
