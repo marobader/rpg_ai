@@ -17,6 +17,14 @@ local ResourceSystem = {}
 
 local function rgb(c) return Color3.fromRGB(c[1], c[2], c[3]) end
 
+local terrainRay = RaycastParams.new()
+terrainRay.FilterType = Enum.RaycastFilterType.Include
+terrainRay.FilterDescendantsInstances = { workspace.Terrain }
+local function groundY(x, z): number
+	local r = workspace:Raycast(Vector3.new(x, 400, z), Vector3.new(0, -800, 0), terrainRay)
+	return r and r.Position.Y or 0
+end
+
 local state: { [Model]: { depleted: boolean } } = {}
 
 -- ---------- Visuals ----------
@@ -106,6 +114,7 @@ end
 local function spawnNode(nodeType: string, pos: Vector3, parent: Instance)
 	local def = Resources.get(nodeType)
 	if not def then return end
+	pos = Vector3.new(pos.X, groundY(pos.X, pos.Z), pos.Z)
 	local model, primary
 	if def.kind == "tree" then model, primary = buildTree(def, pos) else model, primary = buildRock(def, pos) end
 	model.Name = nodeType

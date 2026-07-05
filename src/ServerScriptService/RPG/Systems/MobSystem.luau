@@ -18,6 +18,14 @@ local MobSystem = {}
 local STEP = 0.12
 local folder: Folder
 
+local terrainRay = RaycastParams.new()
+terrainRay.FilterType = Enum.RaycastFilterType.Include
+terrainRay.FilterDescendantsInstances = { workspace.Terrain }
+local function groundY(x, z): number
+	local r = workspace:Raycast(Vector3.new(x, 400, z), Vector3.new(0, -800, 0), terrainRay)
+	return r and r.Position.Y or 0
+end
+
 local function rgb(r,g,b) return Color3.fromRGB(r,g,b) end
 local function P(parent, name, size, cf, color, mat, shape)
 	local p = Instance.new("Part")
@@ -217,6 +225,7 @@ function MobSystem.spawn(mobType: string, pos: Vector3)
 	local def = MobsCfg.get(mobType)
 	local builder = builders[mobType]
 	if not def or not builder then warn("[MobSystem] Unbekannter Mob: "..tostring(mobType)); return end
+	pos = Vector3.new(pos.X, groundY(pos.X, pos.Z), pos.Z)
 	local model = builder(pos)
 	model.Name = mobType
 	model:SetAttribute("MobType", mobType)
