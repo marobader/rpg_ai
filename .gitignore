@@ -1,0 +1,13 @@
+# Claude Code lokale Session-/Tool-Daten
+.claude/
+
+# Roblox Studio Backups & Sperrdateien
+*.rbxl.lock
+*.rbxlx.lock
+*_backup.rbxl
+*_backup.rbxlx
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
