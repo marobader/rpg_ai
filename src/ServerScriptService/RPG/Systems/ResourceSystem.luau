@@ -3,6 +3,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local CollectionService = game:GetService("CollectionService")
 
 local Config = ReplicatedStorage.RPG.Config
 local Resources = require(Config.Resources)
@@ -119,6 +120,7 @@ local function spawnNode(nodeType: string, pos: Vector3, parent: Instance)
 	if def.kind == "tree" then model, primary = buildTree(def, pos) else model, primary = buildRock(def, pos) end
 	model.Name = nodeType
 	model:SetAttribute("NodeType", nodeType)
+	CollectionService:AddTag(model, "Interactable")
 	state[model] = { depleted = false }
 
 	local prompt = Instance.new("ProximityPrompt")
