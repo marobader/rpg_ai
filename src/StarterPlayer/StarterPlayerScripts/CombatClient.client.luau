@@ -39,6 +39,22 @@ end)
 if player.Character then task.defer(equipSword) end
 
 -- Schwung-Animation
+local function ensureTrail(sword)
+	local blade = sword:FindFirstChild("Blade")
+	if not blade then return nil end
+	local trail = blade:FindFirstChild("SwingTrail")
+	if not trail then
+		local a0 = Instance.new("Attachment"); a0.Name = "T0"; a0.Position = Vector3.new(0,0,1.6); a0.Parent = blade
+		local a1 = Instance.new("Attachment"); a1.Name = "T1"; a1.Position = Vector3.new(0,0,-1.6); a1.Parent = blade
+		trail = Instance.new("Trail"); trail.Name = "SwingTrail"; trail.Attachment0 = a0; trail.Attachment1 = a1
+		trail.Lifetime = 0.16; trail.Enabled = false; trail.LightEmission = 0.6
+		trail.Color = ColorSequence.new(Color3.fromRGB(190,225,255))
+		trail.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0.1), NumberSequenceKeypoint.new(1,1)})
+		trail.Parent = blade
+	end
+	return trail
+end
+
 local swinging = false
 local function playSwing()
 	local sword = getSword()
@@ -46,6 +62,8 @@ local function playSwing()
 	swinging = true
 	sword.Grip = SWING_GRIP
 	TweenService:Create(sword, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Grip = BASE_GRIP }):Play()
+	local trail = ensureTrail(sword)
+	if trail then trail.Enabled = true; task.delay(0.28, function() trail.Enabled = false end) end
 	task.delay(0.3, function() swinging = false end)
 end
 

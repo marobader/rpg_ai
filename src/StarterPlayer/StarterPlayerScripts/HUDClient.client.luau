@@ -165,6 +165,51 @@ ProfileUpdated.OnClientEvent:Connect(function(profile)
 	refresh()
 end)
 
+-- ---------- Lebensanzeige (unten mittig) ----------
+local hpBar = Instance.new("Frame")
+hpBar.AnchorPoint = Vector2.new(0.5, 1); hpBar.Position = UDim2.new(0.5, 0, 1, -140)
+hpBar.Size = UDim2.fromOffset(360, 22); hpBar.BackgroundColor3 = Color3.fromRGB(20,20,26)
+hpBar.BackgroundTransparency = 0.1; hpBar.Parent = gui
+corner(hpBar, 8); stroke(hpBar, Color3.fromRGB(80,80,100), 1.5, 0.2)
+local hpFill = Instance.new("Frame")
+hpFill.Size = UDim2.new(1,0,1,0); hpFill.BackgroundColor3 = Color3.fromRGB(70,190,90); hpFill.BorderSizePixel = 0; hpFill.Parent = hpBar
+corner(hpFill, 8)
+local hpLabel = Instance.new("TextLabel")
+hpLabel.BackgroundTransparency = 1; hpLabel.Size = UDim2.fromScale(1,1); hpLabel.Font = Enum.Font.GothamBold
+hpLabel.TextSize = 13; hpLabel.TextColor3 = Color3.fromRGB(255,255,255); hpLabel.TextStrokeTransparency = 0.4
+hpLabel.Text = ""; hpLabel.Parent = hpBar
+
+local dmgFlash = Instance.new("Frame")
+dmgFlash.Size = UDim2.fromScale(1,1); dmgFlash.BackgroundColor3 = Color3.fromRGB(180,20,20)
+dmgFlash.BackgroundTransparency = 1; dmgFlash.ZIndex = 0; dmgFlash.Parent = gui
+
+local function hpColor(frac)
+	if frac > 0.5 then return Color3.fromRGB(70,190,90)
+	elseif frac > 0.25 then return Color3.fromRGB(220,180,60)
+	else return Color3.fromRGB(210,60,60) end
+end
+
+local function bindHealth(char)
+	local hum = char:FindFirstChildOfClass("Humanoid") or char:WaitForChild("Humanoid", 5)
+	if not hum then return end
+	local last = hum.Health
+	local function upd()
+		local frac = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+		TweenService:Create(hpFill, TweenInfo.new(0.25), { Size = UDim2.new(frac,0,1,0), BackgroundColor3 = hpColor(frac) }):Play()
+		hpLabel.Text = string.format("%d / %d", math.ceil(hum.Health), hum.MaxHealth)
+		if hum.Health < last - 0.5 then
+			dmgFlash.BackgroundTransparency = 0.55
+			TweenService:Create(dmgFlash, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
+		end
+		last = hum.Health
+	end
+	hum.HealthChanged:Connect(upd)
+	hum:GetPropertyChangedSignal("MaxHealth"):Connect(upd)
+	upd()
+end
+if player.Character then task.defer(bindHealth, player.Character) end
+player.CharacterAdded:Connect(bindHealth)
+
 -- ---------- Toasts ----------
 local toastHolder = Instance.new("Frame")
 toastHolder.BackgroundTransparency = 1; toastHolder.Size = UDim2.fromOffset(340, 300)

@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
 
 local Config = ReplicatedStorage.RPG.Config
 local MobsCfg = require(Config.Mobs)
@@ -128,15 +129,55 @@ local function rollLoot(player: Player, def, pos: Vector3)
 			DropSystem.spawn(entry.item, entry.count or 1, pos, player)
 		end
 	end
+	-- Seltener mystischer Fund (2%)
+	if math.random() < 0.02 then
+		DropSystem.spawn("AncientRelic", 1, pos, player)
+	end
+end
+
+-- ---------- Treffer-Effekt (Flash + Funken + Schadenszahl) ----------
+local function hitEffect(model: Model, amount: number, isCrit: boolean?)
+	local part = model.PrimaryPart
+	if not part then return end
+	local hl = Instance.new("Highlight")
+	hl.FillColor = isCrit and Color3.fromRGB(255,220,80) or Color3.fromRGB(255,70,70)
+	hl.FillTransparency = 0.4; hl.OutlineTransparency = 1
+	hl.Adornee = model; hl.Parent = model
+	task.delay(0.12, function() hl:Destroy() end)
+
+	local e = Instance.new("ParticleEmitter")
+	e.Color = ColorSequence.new(isCrit and Color3.fromRGB(255,220,90) or Color3.fromRGB(255,240,200))
+	e.Size = NumberSequence.new(isCrit and 0.9 or 0.5)
+	e.Lifetime = NumberRange.new(0.2,0.4); e.Speed = NumberRange.new(6,12)
+	e.SpreadAngle = Vector2.new(180,180); e.Rate = 0; e.LightEmission = 1
+	e.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0), NumberSequenceKeypoint.new(1,1)})
+	e.Parent = part
+	e:Emit(isCrit and 16 or 8)
+	task.delay(0.6, function() e:Destroy() end)
+
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.fromOffset(60,26); bb.StudsOffset = Vector3.new(math.random(-8,8)/10, 2.6, 0)
+	bb.AlwaysOnTop = true; bb.Adornee = part; bb.Parent = part
+	local lbl = Instance.new("TextLabel")
+	lbl.BackgroundTransparency = 1; lbl.Size = UDim2.fromScale(1,1)
+	lbl.Font = Enum.Font.GothamBlack; lbl.TextSize = isCrit and 24 or 18
+	lbl.TextColor3 = isCrit and Color3.fromRGB(255,220,80) or Color3.fromRGB(255,255,255)
+	lbl.TextStrokeTransparency = 0.2
+	lbl.Text = tostring(amount) .. (isCrit and "!" or "")
+	lbl.Parent = bb
+	TweenService:Create(bb, TweenInfo.new(0.6), { StudsOffset = bb.StudsOffset + Vector3.new(0,2,0) }):Play()
+	TweenService:Create(lbl, TweenInfo.new(0.6), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	task.delay(0.65, function() bb:Destroy() end)
 end
 
 -- ---------- Schaden von aussen (vom Kampfsystem) ----------
-function MobSystem.damageMob(model: Model, amount: number, player: Player?)
+function MobSystem.damageMob(model: Model, amount: number, player: Player?, isCrit: boolean?)
 	if not model or not model.Parent then return end
 	local hum = model:FindFirstChildOfClass("Humanoid")
 	if not hum or hum.Health <= 0 then return end
 	if player then model:SetAttribute("LastHitBy", player.UserId) end
 	hum:TakeDamage(amount)
+	hitEffect(model, amount, isCrit)
 end
 
 -- ---------- Angriff des Mobs ----------
@@ -144,7 +185,12 @@ local function mobAttack(model: Model, def, target: Player)
 	local root = model.PrimaryPart
 	if not root then return end
 	model:SetAttribute("Winding", true)
+	local tel = Instance.new("Highlight")
+	tel.FillColor = Color3.fromRGB(255,140,40); tel.FillTransparency = 0.55
+	tel.OutlineColor = Color3.fromRGB(255,165,60); tel.OutlineTransparency = 0.2
+	tel.Adornee = model; tel.Parent = model
 	task.delay(def.windup, function()
+		if tel then tel:Destroy() end
 		model:SetAttribute("Winding", false)
 		if not model.Parent then return end
 		local char = target.Character

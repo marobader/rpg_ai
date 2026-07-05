@@ -22,6 +22,12 @@ Items.ById = {
 	GoblinEar  = { name = "Goblinohr",    type = "Beute", rarity = "gewoehnlich", maxStack = 99, sell = 4 },
 	WolfPelt   = { name = "Wolfsfell",    type = "Beute", rarity = "gewoehnlich", maxStack = 99, sell = 6 },
 	SpiderSilk = { name = "Spinnenseide", type = "Beute", rarity = "selten",      maxStack = 99, sell = 10 },
+	-- Seltene / besondere Funde
+	AncientRelic = { name = "Uraltes Relikt", type = "Beute",     rarity = "mystisch", maxStack = 99, sell = 250 },
+	Amber        = { name = "Bernstein",      type = "Ressource", rarity = "episch",   maxStack = 99, sell = 60 },
+	-- Kräuter (Alchemie)
+	HealHerb     = { name = "Heilkraut",      type = "Ressource", rarity = "gewoehnlich", maxStack = 99, sell = 5 },
+	GlowShroom   = { name = "Leuchtpilz",     type = "Ressource", rarity = "selten",      maxStack = 99, sell = 14 },
 }
 
 function Items.get(id: string)

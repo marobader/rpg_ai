@@ -193,6 +193,23 @@ local function playLevelUp(skillKey, newLevel)
 	local def = Skills.ByKey[skillKey]
 	local col = def and skillColor(def) or C.accent
 
+	-- Partikel-Burst am Charakter
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	if root then
+		local att = Instance.new("Attachment"); att.Parent = root
+		local e = Instance.new("ParticleEmitter")
+		e.Color = ColorSequence.new(col, Color3.fromRGB(255,255,255))
+		e.Size = NumberSequence.new({NumberSequenceKeypoint.new(0,0.6), NumberSequenceKeypoint.new(1,0)})
+		e.Lifetime = NumberRange.new(0.6,1.1); e.Speed = NumberRange.new(8,16)
+		e.SpreadAngle = Vector2.new(40,40); e.Rate = 0; e.LightEmission = 0.8
+		e.Acceleration = Vector3.new(0,-10,0)
+		e.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0.1), NumberSequenceKeypoint.new(1,1)})
+		e.Parent = att
+		e:Emit(45)
+		task.delay(1.4, function() att:Destroy() end)
+	end
+
 	local pop = Instance.new("Frame")
 	pop.AnchorPoint = Vector2.new(0.5,0.5); pop.Position = UDim2.new(0.5,0,0.36,0)
 	pop.Size = UDim2.fromOffset(340,96); pop.BackgroundColor3 = C.bg; pop.BackgroundTransparency = 0.05

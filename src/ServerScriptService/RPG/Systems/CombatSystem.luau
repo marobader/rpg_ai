@@ -7,6 +7,7 @@ local CollectionService = game:GetService("CollectionService")
 
 local Config = ReplicatedStorage.RPG.Config
 local XP = require(Config.XP)
+local Progression = require(Config.Progression)
 local DataManager = require(script.Parent.DataManager)
 local MobSystem = require(script.Parent.MobSystem)
 
@@ -29,10 +30,9 @@ local function getRemote(name: string): RemoteEvent
 	return r :: RemoteEvent
 end
 
-local function swordDamage(player: Player): number
+local function swordLevel(player: Player): number
 	local profile = DataManager.get(player)
-	local level = profile and XP.levelForXp(profile.skills.Schwert or 0) or 1
-	return 12 + math.floor(level * 0.8)
+	return profile and XP.levelForXp(profile.skills.Schwert or 0) or 1
 end
 
 local function onAttack(player: Player)
@@ -51,20 +51,25 @@ local function onAttack(player: Player)
 	if look.Magnitude < 0.01 then return end
 	look = look.Unit
 
-	local dmg = swordDamage(player)
-	local hits = 0
+	local level = swordLevel(player)
+	local base = Progression.meleeDamage(level)
+	local critCh = Progression.critChance(level)
+	local hits, anyCrit = 0, false
 	for _, mob in ipairs(CollectionService:GetTagged("Mob")) do
 		if mob:IsA("Model") and not mob:GetAttribute("Dead") and mob.PrimaryPart then
 			local to = mob.PrimaryPart.Position - origin
 			local flat = Vector3.new(to.X, 0, to.Z)
 			local dist = flat.Magnitude
 			if dist <= MELEE_RANGE and dist > 0.01 and flat.Unit:Dot(look) >= ARC_DOT then
-				MobSystem.damageMob(mob, dmg, player)
+				local crit = math.random() < critCh
+				local dmg = crit and math.floor(base * Progression.CritMultiplier) or base
+				MobSystem.damageMob(mob, dmg, player, crit)
 				hits += 1
+				if crit then anyCrit = true end
 			end
 		end
 	end
-	getRemote("CombatFX"):FireClient(player, { kind = "swing", hits = hits })
+	getRemote("CombatFX"):FireClient(player, { kind = "swing", hits = hits, crit = anyCrit })
 end
 
 local function onDodge(player: Player)
@@ -96,9 +101,20 @@ function CombatSystem.init()
 
 	local function reset(player: Player)
 		player:SetAttribute("Invulnerable", false)
-		player.CharacterAdded:Connect(function()
+		local function onChar(char)
 			player:SetAttribute("Invulnerable", false)
-		end)
+			task.spawn(function()
+				local phum = char:FindFirstChildOfClass("Humanoid") or char:WaitForChild("Humanoid", 5)
+				local profile = DataManager.get(player)
+				if phum and profile then
+					local lvl = XP.levelForXp(profile.skills.Schwert or 0)
+					phum.MaxHealth = Progression.maxHealth(lvl)
+					phum.Health = phum.MaxHealth
+				end
+			end)
+		end
+		player.CharacterAdded:Connect(onChar)
+		if player.Character then onChar(player.Character) end
 	end
 	for _, p in ipairs(Players:GetPlayers()) do reset(p) end
 	Players.PlayerAdded:Connect(reset)

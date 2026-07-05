@@ -10,6 +10,7 @@ local Config = ReplicatedStorage.RPG.Config
 local Skills = require(Config.Skills)
 local XP = require(Config.XP)
 local Items = require(Config.Items)
+local Progression = require(Config.Progression)
 
 local DataManager = {}
 
@@ -155,6 +156,19 @@ function DataManager.addXp(player: Player, skillKey: string, amount: number)
 	local newLevel = XP.levelForXp(after)
 
 	updateLeaderstats(player, profile)
+
+	-- Max-HP mit Kampf-Level erhoehen
+	if Progression.CombatSkills[skillKey] and newLevel > oldLevel then
+		local char = player.Character
+		local phum = char and char:FindFirstChildOfClass("Humanoid")
+		if phum then
+			local combatLevel = XP.levelForXp(profile.skills.Schwert or 0)
+			local newMax = Progression.maxHealth(combatLevel)
+			local delta = newMax - phum.MaxHealth
+			phum.MaxHealth = newMax
+			if delta > 0 then phum.Health = math.min(phum.Health + delta, newMax) end
+		end
+	end
 
 	getRemote("SkillXpGained"):FireClient(player, {
 		skill = skillKey,

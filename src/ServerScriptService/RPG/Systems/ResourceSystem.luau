@@ -13,6 +13,7 @@ local Skills = require(Config.Skills)
 local DataManager = require(script.Parent.DataManager)
 local QuestSystem = require(script.Parent.QuestSystem)
 local DropSystem = require(script.Parent.DropSystem)
+local Progression = require(Config.Progression)
 
 local ResourceSystem = {}
 
@@ -68,10 +69,33 @@ local function buildRock(def, pos, scale): (Model, BasePart)
 	return m, rock
 end
 
+local function buildHerb(def, pos, scale): (Model, BasePart)
+	scale = scale or 1
+	local m = Instance.new("Model")
+	local h = 2.6 * scale
+	local stem = Instance.new("Part")
+	stem.Name = "Stem"; stem.Anchored = true; stem.CanCollide = false
+	stem.Size = Vector3.new(0.4*scale, h, 0.4*scale)
+	stem.CFrame = CFrame.new(pos) * CFrame.new(0, h/2, 0)
+	stem.Material = Enum.Material.Grass; stem.Color = rgb(def.stem)
+	stem.Parent = m
+	local foliage = Instance.new("Folder"); foliage.Name = "Foliage"; foliage.Parent = m
+	local fc = rgb(def.flower)
+	for i = 1, 3 do
+		local a = math.rad(i*120)
+		local b = Instance.new("Part"); b.Anchored = true; b.CanCollide = false; b.Shape = Enum.PartType.Ball
+		b.Size = Vector3.new(1,1,1)*scale
+		b.CFrame = CFrame.new(pos) * CFrame.new(math.cos(a)*0.5*scale, h, math.sin(a)*0.5*scale)
+		b.Material = Enum.Material.Neon; b.Color = fc; b.Parent = foliage
+	end
+	m.PrimaryPart = stem
+	return m, stem
+end
+
 local function setDepleted(model: Model, def, depleted: boolean)
 	local st = state[model]
 	if st then st.depleted = depleted end
-	if def.kind == "tree" then
+	if def.kind == "tree" or def.kind == "forage" then
 		local foliage = model:FindFirstChild("Foliage")
 		if foliage then for _, b in ipairs(foliage:GetChildren()) do (b :: BasePart).Transparency = depleted and 1 or 0 end end
 		if model.PrimaryPart then model.PrimaryPart.Transparency = depleted and 0.55 or 0 end
@@ -82,6 +106,24 @@ local function setDepleted(model: Model, def, depleted: boolean)
 	end
 	local prompt = model.PrimaryPart and model.PrimaryPart:FindFirstChildWhichIsA("ProximityPrompt")
 	if prompt then prompt.Enabled = not depleted end
+end
+
+-- ---------- Ernte-Partikel ----------
+local function harvestFX(model: Model, def)
+	local part = model.PrimaryPart
+	if not part then return end
+	local col
+	if def.kind == "rock" then col = Color3.fromRGB(150,145,140)
+	elseif def.kind == "forage" then col = Color3.fromRGB(150,240,180)
+	else col = Color3.fromRGB(150,110,60) end
+	local e = Instance.new("ParticleEmitter")
+	e.Color = ColorSequence.new(col); e.Size = NumberSequence.new(0.4)
+	e.Lifetime = NumberRange.new(0.3,0.6); e.Speed = NumberRange.new(4,9)
+	e.SpreadAngle = Vector2.new(60,60); e.Rate = 0; e.Acceleration = Vector3.new(0,-20,0)
+	e.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0,0), NumberSequenceKeypoint.new(1,1)})
+	e.Parent = part
+	e:Emit(12)
+	task.delay(0.9, function() e:Destroy() end)
 end
 
 -- ---------- Ernte ----------
@@ -103,7 +145,14 @@ local function harvest(player: Player, model: Model, nodeType: string)
 	DataManager.addXp(player, def.skill, def.xp)
 	DataManager.notify(player, string.format("+%d %s XP", def.xp,
 		Skills.ByKey[def.skill] and Skills.ByKey[def.skill].name or def.skill), "good")
-	DropSystem.spawn(def.item, def.count, model.PrimaryPart.Position + Vector3.new(0, 2, 0), player)
+	local qty = def.count
+	if math.random() < Progression.bonusYieldChance(level) then qty += math.random(1, 2) end
+	local dropPos = model.PrimaryPart.Position + Vector3.new(0, 2, 0)
+	DropSystem.spawn(def.item, qty, dropPos, player)
+	if def.kind == "tree" and math.random() < 0.03 then
+		DropSystem.spawn("Amber", 1, dropPos, player)
+	end
+	harvestFX(model, def)
 
 	QuestSystem.report(player, "harvest", nodeType)
 
@@ -119,14 +168,16 @@ local function spawnNode(nodeType: string, pos: Vector3, parent: Instance, scale
 	if not def then return end
 	pos = Vector3.new(pos.X, groundY(pos.X, pos.Z), pos.Z)
 	local model, primary
-	if def.kind == "tree" then model, primary = buildTree(def, pos, scale) else model, primary = buildRock(def, pos, scale) end
+	if def.kind == "tree" then model, primary = buildTree(def, pos, scale)
+	elseif def.kind == "forage" then model, primary = buildHerb(def, pos, scale)
+	else model, primary = buildRock(def, pos, scale) end
 	model.Name = nodeType
 	model:SetAttribute("NodeType", nodeType)
 	CollectionService:AddTag(model, "Interactable")
 	state[model] = { depleted = false }
 
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = (def.kind == "tree") and "F\u{00E4}llen" or "Abbauen"
+	prompt.ActionText = def.kind == "tree" and "F\u{00E4}llen" or def.kind == "forage" and "Sammeln" or "Abbauen"
 	prompt.ObjectText = def.display
 	prompt.HoldDuration = def.duration
 	prompt.MaxActivationDistance = 10
@@ -172,7 +223,17 @@ function ResourceSystem.init()
 			ores += 1
 		end
 	end
-	print(string.format("[ResourceSystem] initialisiert (%d Baeume, %d Erz).", trees, ores))
+	local herbs = 0; tries = 0
+	while herbs < 22 and tries < 400 do
+		tries += 1
+		local x, z = math.random(-240, 240), math.random(980, 1470)
+		if farFromClearing(x, z) then
+			local nodeType = (math.random() < 0.8) and "HealHerb" or "GlowShroom"
+			spawnNode(nodeType, Vector3.new(x, 0, z), folder, 0.9 + math.random() * 0.4)
+			herbs += 1
+		end
+	end
+	print(string.format("[ResourceSystem] initialisiert (%d Baeume, %d Erz, %d Kraeuter).", trees, ores, herbs))
 end
 
 return ResourceSystem

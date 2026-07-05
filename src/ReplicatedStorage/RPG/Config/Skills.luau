@@ -26,7 +26,7 @@ Skills.List = {
 	{ key = "Schmieden",    name = "Schmieden",    category = "Handwerk", active = false, color = {200, 120, 40} },
 	{ key = "Kochen",       name = "Kochen",       category = "Handwerk", active = false, color = {220, 170, 90} },
 	{ key = "Herstellen",   name = "Herstellen",   category = "Handwerk", active = false, color = {170, 140, 110} },
-	{ key = "Alchemie",     name = "Alchemie",     category = "Wissen",   active = false, color = {80, 200, 140} },
+	{ key = "Alchemie",     name = "Alchemie",     category = "Wissen",   active = true,  color = {80, 200, 140} },
 	{ key = "Handeln",      name = "Handeln",      category = "Wissen",   active = false, color = {220, 200, 80} },
 	{ key = "Archaeologie", name = "Arch\u{00E4}ologie", category = "Wissen",   active = false, color = {180, 150, 90} },
 }

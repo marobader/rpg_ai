@@ -9,6 +9,8 @@ Resources.Nodes = {
 	BirchTree = { display = "Birke",       skill = "Holzfaellen", level = 8,  xp = 28, item = "BirchLog", count = 1, duration = 2.6, respawn = 9,  kind = "tree", trunk = {210,205,195}, leaf = {120,170,80} },
 	CopperRock = { display = "Kupferader", skill = "Bergbau",     level = 1,  xp = 18, item = "CopperOre", count = 1, duration = 2.4, respawn = 8,  kind = "rock", rock = {110,105,100}, vein = {200,110,45} },
 	IronRock   = { display = "Eisenader",  skill = "Bergbau",     level = 15, xp = 42, item = "IronOre",   count = 1, duration = 3.2, respawn = 13, kind = "rock", rock = {95,92,96},   vein = {150,120,95} },
+	HealHerb   = { display = "Heilkraut",  skill = "Alchemie",    level = 1,  xp = 12, item = "HealHerb",  count = 1, duration = 1.6, respawn = 7,  kind = "forage", stem = {80,130,60},   flower = {230,120,170} },
+	GlowShroom = { display = "Leuchtpilz", skill = "Alchemie",    level = 10, xp = 30, item = "GlowShroom", count = 1, duration = 2.2, respawn = 11, kind = "forage", stem = {210,205,215}, flower = {150,240,180} },
 }
 
 function Resources.get(nodeType: string)
