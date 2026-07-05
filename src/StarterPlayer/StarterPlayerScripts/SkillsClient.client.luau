@@ -45,6 +45,33 @@ btn.BackgroundColor3 = Color3.fromRGB(40,40,48); btn.Text = "\u{2B50}"; btn.Text
 btn.Font = Enum.Font.GothamBold; btn.TextColor3 = C.text; btn.Parent = gui
 corner(btn,12); stroke(btn, C.stroke, 1.5)
 
+-- ---------- XP-Leiste (immer sichtbar, unten mittig) ----------
+local activeSkill = "Schwert"
+local xpBar = Instance.new("Frame")
+xpBar.AnchorPoint = Vector2.new(0.5, 1); xpBar.Position = UDim2.new(0.5, 0, 1, -104)
+xpBar.Size = UDim2.fromOffset(360, 30); xpBar.BackgroundColor3 = Color3.fromRGB(20,20,26)
+xpBar.BackgroundTransparency = 0.1; xpBar.Parent = gui
+corner(xpBar, 8); stroke(xpBar, C.stroke, 1.5, 0.2)
+local xpFill = Instance.new("Frame")
+xpFill.Size = UDim2.new(0,0,1,0); xpFill.BackgroundColor3 = C.accent; xpFill.BorderSizePixel = 0; xpFill.Parent = xpBar
+corner(xpFill, 8)
+local xpLabel = Instance.new("TextLabel")
+xpLabel.BackgroundTransparency = 1; xpLabel.Size = UDim2.fromScale(1,1)
+xpLabel.Font = Enum.Font.GothamBold; xpLabel.TextSize = 14; xpLabel.TextColor3 = Color3.fromRGB(255,255,255)
+xpLabel.TextStrokeTransparency = 0.4; xpLabel.Text = ""; xpLabel.Parent = xpBar
+
+local function updateXpBar()
+	if not currentProfile then return end
+	local def = Skills.ByKey[activeSkill]
+	local xpVal = (currentProfile.skills and currentProfile.skills[activeSkill]) or 0
+	local prog = XP.progress(xpVal)
+	xpFill.BackgroundColor3 = def and skillColor(def) or C.accent
+	local frac = prog.max and 1 or prog.fraction
+	TweenService:Create(xpFill, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Size = UDim2.new(frac, 0, 1, 0) }):Play()
+	xpLabel.Text = string.format("%s   Lv %d   %s", def and def.name or activeSkill, prog.level,
+		prog.max and "MAX" or string.format("%d / %d", prog.into, prog.need))
+end
+
 -- ---------- Panel ----------
 local PW, PH = 470, 540
 local panel = Instance.new("Frame")
@@ -157,6 +184,7 @@ end)
 
 ProfileUpdated.OnClientEvent:Connect(function(profile)
 	currentProfile = profile
+	updateXpBar()
 	if panel.Visible then refresh() end
 end)
 
@@ -202,6 +230,8 @@ local function playLevelUp(skillKey, newLevel)
 end
 
 SkillXpGained.OnClientEvent:Connect(function(data)
+	activeSkill = data.skill
+	updateXpBar()
 	if panel.Visible then refresh() end
 	if data.leveledUp then
 		playLevelUp(data.skill, data.level)
