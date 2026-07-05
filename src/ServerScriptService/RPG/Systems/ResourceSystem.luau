@@ -11,6 +11,7 @@ local Items = require(Config.Items)
 local Skills = require(Config.Skills)
 local DataManager = require(script.Parent.DataManager)
 local QuestSystem = require(script.Parent.QuestSystem)
+local DropSystem = require(script.Parent.DropSystem)
 
 local ResourceSystem = {}
 
@@ -88,13 +89,10 @@ local function harvest(player: Player, model: Model, nodeType: string)
 		return
 	end
 
-	if not DataManager.addItem(player, def.item, def.count) then
-		DataManager.notify(player, "Inventar voll!", "warn")
-		return
-	end
 	DataManager.addXp(player, def.skill, def.xp)
-	DataManager.notify(player, string.format("+%d %s  (+%d %s XP)", def.count, Items.name(def.item), def.xp,
+	DataManager.notify(player, string.format("+%d %s XP", def.xp,
 		Skills.ByKey[def.skill] and Skills.ByKey[def.skill].name or def.skill), "good")
+	DropSystem.spawn(def.item, def.count, model.PrimaryPart.Position + Vector3.new(0, 2, 0), player)
 
 	QuestSystem.report(player, "harvest", nodeType)
 

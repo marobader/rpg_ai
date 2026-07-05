@@ -7,6 +7,9 @@ DataManager.init()
 local QuestSystem = require(Systems.QuestSystem)
 QuestSystem.init()
 
+local DropSystem = require(Systems.DropSystem)
+DropSystem.init()
+
 local PortalSystem = require(Systems.PortalSystem)
 PortalSystem.init()
 

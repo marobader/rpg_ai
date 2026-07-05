@@ -10,6 +10,7 @@ local Config = ReplicatedStorage.RPG.Config
 local MobsCfg = require(Config.Mobs)
 local DataManager = require(script.Parent.DataManager)
 local QuestSystem = require(script.Parent.QuestSystem)
+local DropSystem = require(script.Parent.DropSystem)
 local Items = require(Config.Items)
 
 local MobSystem = {}
@@ -113,10 +114,10 @@ local function nearestPlayer(pos: Vector3, range: number): (Player?, BasePart?)
 	return best, bestRoot
 end
 
-local function rollLoot(player: Player, def)
+local function rollLoot(player: Player, def, pos: Vector3)
 	for _, entry in ipairs(def.loot or {}) do
 		if math.random() <= entry.chance then
-			DataManager.addItem(player, entry.item, entry.count or 1)
+			DropSystem.spawn(entry.item, entry.count or 1, pos, player)
 		end
 	end
 end
@@ -199,7 +200,8 @@ local function onDied(model: Model, def, mobType: string, spawnPos: Vector3)
 	if killer then
 		DataManager.addXp(killer, "Schwert", def.xp)
 		DataManager.addGold(killer, math.random(def.gold[1], def.gold[2]))
-		rollLoot(killer, def)
+		local pos = (model.PrimaryPart and model.PrimaryPart.Position) or spawnPos
+		rollLoot(killer, def, pos)
 		QuestSystem.report(killer, "kill", mobType)
 		DataManager.notify(killer, string.format("%s besiegt!  (+%d Schwert XP)", def.display, def.xp), "good")
 	end
